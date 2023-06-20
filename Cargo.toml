@@ -1,0 +1,30 @@
+[package]
+name = "apollo"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ramzi Abou Chahine <r.abou-chahine@uea.ac.uk>"]
+
+[dependencies.serenity]
+version = "0.11"
+default-features = false
+features = ["voice", "cache", "collector", "client", "gateway", "model"]
+
+[dependencies.tokio]
+version = "1.26.0"
+features = ["macros", "rt-multi-thread"]
+
+[dependencies]
+poise = "0.5.5"
+songbird = { version = "0.3.2", features = ["yt-dlp"] }
+log = "0.4.19"
+env_logger = "0.10.0"
+url = "2.4.0"
+futures = "0.3.28"
+google-youtube3 = "5.0.2"
+hyper = "0.14.26"
+hyper-rustls = "0.24.0"
+rocket = "0.5.0-rc.2"
+shuttle-rocket = { version = "0.18.0" }
+shuttle-runtime = { version = "0.18.0" }
+shuttle-secrets = { version = "0.18.0" }
+shuttle-poise = { version = "0.18.0" }
