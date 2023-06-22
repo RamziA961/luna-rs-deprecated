@@ -2,7 +2,7 @@ use songbird::{events::Event, events::EventContext, events::EventHandler, Call};
 
 use serenity::{
     async_trait,
-    prelude::{Mutex, RwLock, TypeMap},
+    prelude::{Mutex, RwLock},
 };
 
 use poise::serenity_prelude::GuildId;
@@ -10,22 +10,23 @@ use std::sync::Arc;
 
 use log::warn;
 
-use crate::client_state::{client_state::ClientState, client_state_map::ClientStateMap};
+use crate::{
+    client_state::{ClientState, ClientStateMap}
+};
 
 pub(crate) struct QueueHandler {
     pub(crate) guild_id: GuildId,
     pub(crate) handler: Arc<Mutex<Call>>,
-    pub(crate) ctx_data: Arc<RwLock<TypeMap>>,
+    pub(crate) client_state_map: Arc<RwLock<ClientStateMap>>
 }
 
 #[async_trait]
-impl EventHandler for QueueHandler {
+impl<'a> EventHandler for QueueHandler {
     async fn act(&self, _: &EventContext<'_>) -> Option<Event> {
-        let mut lock = self.ctx_data.write().await;
+        let mut client_map = self.client_state_map.write().await;
+        let client_state = client_map.get(self.guild_id.as_u64()).cloned().unwrap();
 
-        let client_map = lock.get_mut::<ClientStateMap>().unwrap();
-        let client_state = client_map.get(self.guild_id.as_u64()).unwrap();
-        let song_queue = client_state.clone().song_queue.unwrap();
+        let song_queue = client_state.song_queue.as_ref().unwrap();
 
         if song_queue.len() == 0 {
             client_map

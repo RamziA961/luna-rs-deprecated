@@ -22,9 +22,8 @@ pub async fn shared_room_check(ctx: Context<'_>) -> Result<bool, Error> {
         }
     };
 
-    let lock = ctx.serenity_context().data.read().await;
+    let client_map = ctx.data().client_state_map.read().await;
 
-    let client_map = lock.get::<ClientStateMap>().unwrap();
 
     let client_state = match client_map.get(guild_id.as_u64()) {
         Some(client_state) => client_state,

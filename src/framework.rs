@@ -13,13 +13,15 @@ use crate::{
     commands,
     config::{Error, ServerState},
 };
-
 use songbird::SerenityInit;
+
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 pub(crate) async fn build_client(
     secrets: SecretStore,
     intents: GatewayIntents,
-) -> FrameworkBuilder<ServerState, Error> {
+    ) -> FrameworkBuilder<ServerState, Error> {
     let https = hyper_rustls::HttpsConnectorBuilder::new()
         .with_native_roots()
         .https_or_http()
@@ -42,30 +44,28 @@ pub(crate) async fn build_client(
         .token(secrets.get("DISCORD_TOKEN").unwrap())
         .intents(intents)
         .client_settings(|cb| cb.register_songbird())
-        .setup(|ctx, _, framework| {
+        .setup(|context, _, framework| {
             Box::pin(async move {
-                let mut lock = ctx.data.write().await;
-                lock.insert::<ClientStateMap>(ClientStateMap::new());
-
                 let gid = secrets.get("GUILD_ID").and_then(|v| v.parse::<u64>().ok());
 
-                let register = match gid {
+                match gid {
                     Some(gid) => {
                         poise::builtins::register_in_guild(
-                            ctx,
+                            context,
                             &framework.options().commands,
                             serenity::GuildId(gid),
                         )
                         .await
                     }
                     None => {
-                        poise::builtins::register_globally(ctx, &framework.options().commands).await
+                        poise::builtins::register_globally(context, &framework.options().commands).await
                     }
-                };
+                }?;
 
                 Ok(ServerState {
                     youtube_client: yt,
                     youtube_api_key: secrets.get("YOUTUBE_API_KEY").unwrap(),
+                    client_state_map: Arc::new(RwLock::new(ClientStateMap::new()))
                 })
             })
         })

@@ -7,10 +7,13 @@ use songbird::{Event, TrackEvent};
 
 use url;
 
-use crate::checks::author_in_room_check;
-use crate::client_state::{ClientState, ClientStateMap, QueueElement};
-use crate::commands::{handlers, utils};
-use crate::config::{Context, Error};
+use crate::{
+    checks::author_in_room_check,
+    client_state::{ClientState, QueueElement},
+    commands::utils,
+    config::{Context, Error},
+    handlers::{InactivityHandler, QueueHandler}
+};
 
 #[derive(Debug)]
 pub enum PlayStatus {
@@ -298,13 +301,15 @@ async fn source_input(context: &Context<'_>, query: String) -> Option<SourceType
 /// global event listnener to play queued videos.  
 async fn handle_play(
     guild_id: &GuildId,
-    ctx: &mut Context<'_>,
+    ctx: &Context<'_>,
     input: SourceType,
 ) -> Result<PlayStatus, Error> {
     let manager = songbird::get(ctx.serenity_context()).await.unwrap().clone();
-    let mut lock = ctx.serenity_context().data.write().await;
+//    let mut lock = ctx.serenity_context().data.write().await;
+//    let client_map = lock.get_mut::<ClientStateMap>().unwrap();
 
-    let client_map = lock.get_mut::<ClientStateMap>().unwrap();
+    let client_map = &mut ctx.data().client_state_map.write().await;
+
     let client_state = match client_map.get(guild_id.as_u64()) {
         Some(client_state) => client_state,
         None => {
@@ -380,12 +385,26 @@ async fn handle_play(
         handler.remove_all_global_events();
         handler.add_global_event(
             Event::Track(TrackEvent::End),
-            handlers::QueueHandler {
-                ctx_data: ctx.serenity_context().data.clone(),
+            QueueHandler {
+                client_state_map: ctx.data().client_state_map.clone(),
                 guild_id: guild_id.clone(),
-                handler: handler_lock.clone(),
-            },
+                handler: handler_lock.clone()
+            }
         );
+
+        handler.add_global_event(
+            Event::Core(songbird::CoreEvent::ClientDisconnect),
+            InactivityHandler {
+                client_state_map: ctx.data().client_state_map.clone(),
+                guild: ctx.guild().unwrap(),
+                manager: manager.clone()
+            }
+        );
+//        handlers::QueueHandler {
+//            context: ctx,
+//            guild_id: guild_id.clone(),
+//            handler: handler_lock.clone(),
+//        },
 
         (
             play_status,
@@ -407,9 +426,12 @@ async fn handle_play(
 
 /// Summon this bot to play a YouTube video as audio.
 /// Subsequent invocations enqueue requested videos.
-#[poise::command(slash_command, check = "author_in_room_check")]
+#[poise::command(
+    slash_command,
+    check = "author_in_room_check"
+)]
 pub async fn play(
-    mut context: Context<'_>,
+    context: Context<'_>,
     #[description = "URL or search query to the requested video."] query: Option<String>,
 ) -> Result<(), Error> {
     info!(
@@ -435,7 +457,7 @@ pub async fn play(
         }
     };
 
-    if utils::summon(&mut context).await.is_err() {
+    if utils::summon(&context).await.is_err() {
         warn!(
             "play::play() could not connect to voice channel in gid: {}.",
             gid.to_string()
@@ -459,7 +481,7 @@ pub async fn play(
                 .await?;
         }
 
-        match handle_play(&gid, &mut context, input).await {
+        match handle_play(&gid, &context, input).await {
             Ok(play_status) => {
                 context
                     .say(match play_status {
@@ -491,7 +513,7 @@ pub async fn play(
                 context
                     .say("Could not play the requested resource. Resetting connection...")
                     .await?;
-                utils::banish(&mut context).await?;
+                utils::banish(&context).await?;
                 Ok(())
             }
         }

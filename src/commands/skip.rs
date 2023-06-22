@@ -1,16 +1,14 @@
-use crate::config::{Context, Error};
-
-use crate::client_state::ClientStateMap;
-
-use crate::checks::shared_room_check;
+use crate::{
+    config::{Context, Error},
+    checks::shared_room_check
+};
 
 /// Skip the current track.
 #[poise::command(slash_command, check = "shared_room_check")]
 pub async fn skip(context: Context<'_>) -> Result<(), Error> {
     let guild_id = context.guild_id().unwrap();
 
-    let mut lock = context.serenity_context().data.write().await;
-    let client_map = lock.get_mut::<ClientStateMap>().unwrap();
+    let client_map = context.data().client_state_map.write().await;
     let client_state = client_map.get(guild_id.as_u64()).unwrap();
 
     let t_handle = match &client_state.current_track {

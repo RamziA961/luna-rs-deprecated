@@ -20,11 +20,8 @@ pub(crate) async fn stop(ctx: Context<'_>) -> Result<(), Error> {
         }
     }
 
-    let mut lock = ctx.serenity_context().data.write().await;
-
-    let client_map = lock.get_mut::<ClientStateMap>().unwrap();
-
-    let current_state = client_map.get(gid.as_u64()).unwrap();
+    let mut client_map = ctx.data().client_state_map.write().await;
+    let current_state = client_map.get(gid.as_u64()).unwrap().clone();
 
     let update_res = client_map.update(
         gid.as_u64(),
@@ -32,7 +29,7 @@ pub(crate) async fn stop(ctx: Context<'_>) -> Result<(), Error> {
             song_queue: Some(vec![]),
             is_playing: false,
             current_track: None,
-            ..*current_state
+            ..current_state
         },
     );
 

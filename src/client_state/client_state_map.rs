@@ -1,11 +1,9 @@
-use serenity::prelude::TypeMapKey;
 use std::collections::HashMap;
-
-use crate::config::Error;
 
 use crate::client_state::client_state::ClientState;
 use crate::client_state::client_state_error::ClientStateError;
 
+#[derive(Clone)]
 pub struct ClientStateMap {
     map: HashMap<u64, ClientState>,
 }
@@ -61,8 +59,4 @@ impl ClientStateMap {
             false => Err(ClientStateError::NonExistentClientID),
         }
     }
-}
-
-impl TypeMapKey for ClientStateMap {
-    type Value = ClientStateMap;
 }

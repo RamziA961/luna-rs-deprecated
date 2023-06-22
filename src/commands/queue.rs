@@ -1,14 +1,11 @@
 use crate::config::{Context, Error};
-
 use crate::checks::shared_room_check;
-use crate::client_state::ClientStateMap;
+
 
 /// See the next elements in the queue.
 #[poise::command(slash_command, check = "shared_room_check")]
 pub async fn queue(context: Context<'_>) -> Result<(), Error> {
-    let lock = context.serenity_context().data.read().await;
-    let client_map = lock.get::<ClientStateMap>().unwrap();
-
+    let client_map = context.data().client_state_map.read().await;
     let client_state = client_map.get(context.guild_id().unwrap().as_u64());
 
     if let Some(state) = client_state {

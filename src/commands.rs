@@ -1,4 +1,3 @@
-pub(crate) mod handlers;
 pub(crate) mod utils;
 
 pub(crate) mod leave;
