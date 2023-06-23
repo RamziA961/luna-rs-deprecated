@@ -21,7 +21,7 @@ use tokio::sync::RwLock;
 pub(crate) async fn build_client(
     secrets: SecretStore,
     intents: GatewayIntents,
-    ) -> FrameworkBuilder<ServerState, Error> {
+) -> FrameworkBuilder<ServerState, Error> {
     let https = hyper_rustls::HttpsConnectorBuilder::new()
         .with_native_roots()
         .https_or_http()

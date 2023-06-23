@@ -1,5 +1,3 @@
-pub(crate) mod utils;
-
 pub(crate) mod leave;
 pub(crate) mod play;
 pub(crate) mod queue;

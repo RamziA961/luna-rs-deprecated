@@ -23,6 +23,7 @@ futures = "0.3.28"
 google-youtube3 = "5.0.2"
 hyper = "0.14.26"
 hyper-rustls = "0.24.0"
+soundcloud = "0.4.0"
 rocket = "0.5.0-rc.2"
 shuttle-rocket = { version = "0.18.0" }
 shuttle-runtime = { version = "0.18.0" }

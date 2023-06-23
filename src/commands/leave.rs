@@ -1,7 +1,7 @@
 use crate::config::{Context, Error};
 
 use crate::checks::shared_room_check;
-use crate::commands::utils;
+use crate::utils;
 
 /// Leave the voice channel.
 #[poise::command(slash_command, check = "shared_room_check")]

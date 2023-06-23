@@ -4,6 +4,7 @@ pub(crate) mod commands;
 pub(crate) mod config;
 pub(crate) mod framework;
 pub(crate) mod handlers;
+pub(crate) mod utils;
 
 use config::{Error, ServerState};
 use poise::serenity_prelude::GatewayIntents;

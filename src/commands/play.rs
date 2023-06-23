@@ -10,10 +10,12 @@ use url;
 use crate::{
     checks::author_in_room_check,
     client_state::{ClientState, QueueElement},
-    commands::utils,
-    config::{Context, Error},
+    utils,
+    utils::{source_retriever, source_retriever::SourceType},
+    config::{Context, Error, ServerState},
     handlers::{InactivityHandler, QueueHandler}
 };
+
 
 #[derive(Debug)]
 pub enum PlayStatus {
@@ -22,277 +24,25 @@ pub enum PlayStatus {
     PlayAndQueued(Vec<QueueElement>),
 }
 
-#[derive(Debug, Clone)]
-pub enum SourceType {
-    Single(QueueElement),
-    Playlist((QueueElement, Vec<QueueElement>)),
-}
-
-async fn fetch_playlist(
-    context: &Context<'_>,
-    playlist_id: String,
-) -> Option<(QueueElement, Vec<QueueElement>)> {
-    let query_builder = || {
-        context
-            .data()
-            .youtube_client
-            .playlist_items()
-            .list(&vec!["snippet".to_string()])
-            .playlist_id(&playlist_id)
-            .param("key", &context.data().youtube_api_key.as_str())
-            .max_results(50)
-    };
-
-    let p_query = context
-        .data()
-        .youtube_client
-        .playlists()
-        .list(&vec!["snippet".to_string()])
-        .add_id(&playlist_id)
-        .param("key", &context.data().youtube_api_key.as_str())
-        .max_results(1);
-
-    if let (Ok((_, mut p_items_res)), Ok((_, p_res))) =
-        join!(query_builder().doit(), p_query.doit())
-    {
-        let best_match = p_res
-            .items
-            .as_ref()
-            .unwrap()
-            .first()
-            .as_ref()
-            .unwrap()
-            .snippet
-            .as_ref()
-            .unwrap();
-        let playlist_data = QueueElement {
-            title: best_match.title.as_ref().unwrap().clone(),
-            channel_name: best_match
-                .channel_title
-                .as_ref()
-                .unwrap_or(&"None".to_string())
-                .clone(),
-            url: format!("{}{}", "https://youtube.com/playlist?list=", playlist_id),
-            id: playlist_id.clone(),
-        };
-
-        let mut playlist_elems = vec![];
-
-        loop {
-            playlist_elems = playlist_elems
-                .into_iter()
-                .chain(
-                    p_items_res
-                        .clone()
-                        .items
-                        .unwrap()
-                        .into_iter()
-                        .map(|playlist_item| QueueElement {
-                            title: playlist_item.snippet.clone().unwrap().title.unwrap(),
-                            channel_name: playlist_item
-                                .snippet
-                                .as_ref()
-                                .unwrap()
-                                .channel_title
-                                .as_ref()
-                                .unwrap()
-                                .clone(),
-                            url: format!(
-                                "{}{}",
-                                "https://youtube.com/watch?v=",
-                                playlist_item
-                                    .snippet
-                                    .as_ref()
-                                    .unwrap()
-                                    .resource_id
-                                    .as_ref()
-                                    .unwrap()
-                                    .video_id
-                                    .as_ref()
-                                    .unwrap()
-                                    .clone()
-                            ),
-                            id: playlist_item
-                                .snippet
-                                .as_ref()
-                                .unwrap()
-                                .resource_id
-                                .as_ref()
-                                .unwrap()
-                                .video_id
-                                .as_ref()
-                                .unwrap()
-                                .clone(),
-                        }),
-                )
-                .collect();
-
-            if let Some(next_token) = p_items_res.clone().next_page_token {
-                p_items_res = query_builder()
-                    .page_token(&next_token)
-                    .doit()
-                    .await
-                    .unwrap()
-                    .1;
-            } else {
-                break;
-            }
-        }
-        Some((playlist_data, playlist_elems))
-    } else {
-        None
-    }
-}
 
 /// Attempts to retrieve a video from YouTube using a given URL or search query.
 /// If successful, the function returns the video's audio and its metadata.
 async fn source_input(context: &Context<'_>, query: String) -> Option<SourceType> {
     let server_state = context.data();
 
-    // vet url to ensure it is youtube link
+    // check that domain is a supported platform
     // if not a url, treat as search query instead
-    let source = match url::Url::parse(query.as_str()) {
+    match url::Url::parse(query.as_str()) {
         Ok(source) => {
-            if source
-                .domain()
-                .unwrap()
-                .to_lowercase()
-                .contains("youtube.com")
-            {
-                source
-            } else {
-                return None;
+            let domain = source.domain().unwrap().to_lowercase();
+            match domain {
+                d if d.contains("youtube.com") => source_retriever::youtube::process(&source, server_state).await,
+                d if d.contains("soundcloud.com") => todo!(),
+                _ => None
             }
         }
-        Err(_) => {
-            let (_, result) = server_state
-                .youtube_client
-                .search()
-                .list(&vec!["snippet".to_string()])
-                .q(&query.as_str())
-                .param("key", &server_state.youtube_api_key.as_str())
-                .max_results(1)
-                .doit()
-                .await
-                .unwrap();
-
-            return if let Some(best_match) = result.items.clone().unwrap().first().cloned() {
-                Some(SourceType::Single(QueueElement {
-                    title: best_match
-                        .snippet
-                        .as_ref()
-                        .unwrap()
-                        .title
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
-                    channel_name: best_match
-                        .snippet
-                        .as_ref()
-                        .unwrap()
-                        .channel_title
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
-                    url: format!(
-                        "{}{}",
-                        "https://youtube.com/watch?v=",
-                        best_match
-                            .id
-                            .as_ref()
-                            .unwrap()
-                            .video_id
-                            .as_ref()
-                            .unwrap()
-                            .clone()
-                    ),
-                    id: best_match
-                        .id
-                        .as_ref()
-                        .unwrap()
-                        .video_id
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
-                }))
-            } else {
-                None
-            };
-        }
-    };
-
-    // check if url points to a playlist or video
-    match source.path() {
-        "/playlist" => {
-            let playlist_id = match source
-                .query_pairs()
-                .skip_while(|(key, _)| key != "list")
-                .next()
-            {
-                Some((_, p)) => p,
-                None => return None,
-            };
-            if let Some(queue) = fetch_playlist(context, playlist_id.to_string()).await {
-                Some(SourceType::Playlist(queue))
-            } else {
-                None
-            }
-        }
-        "/watch" => {
-            let params = source.query_pairs();
-            if params.count() > 1 {
-                if let Some((_, p_id)) = params.skip_while(|(key, _)| key != "list").next() {
-                    if let Some(res) = fetch_playlist(context, p_id.to_string()).await {
-                        return Some(SourceType::Playlist(res));
-                    }
-                }
-            }
-
-            let video_id = match params.skip_while(|(key, _)| key != "v").next() {
-                Some((_, v)) => v,
-                None => return None,
-            };
-
-            let (_, response) = server_state
-                .youtube_client
-                .videos()
-                .list(&vec!["snippet".to_string()])
-                .add_id(&video_id)
-                .param("key", &server_state.youtube_api_key.as_str())
-                .doit()
-                .await
-                .unwrap();
-
-            if let Some(video_data) = response.items.unwrap().first() {
-                Some(SourceType::Single(QueueElement {
-                    title: video_data
-                        .snippet
-                        .as_ref()
-                        .unwrap()
-                        .title
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
-                    channel_name: video_data
-                        .snippet
-                        .as_ref()
-                        .unwrap()
-                        .channel_title
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
-                    url: format!(
-                        "{}{}",
-                        "https://youtube.com/watch?v=",
-                        video_data.id.as_ref().unwrap().to_string()
-                    ),
-                    id: video_data.id.as_ref().unwrap().to_string(),
-                }))
-            } else {
-                None
-            }
-        }
-        _ => None,
+        // Search term, handle with youtube.
+        Err(_) => source_retriever::youtube::handle_search_query(query, server_state).await
     }
 }
 
@@ -305,9 +55,6 @@ async fn handle_play(
     input: SourceType,
 ) -> Result<PlayStatus, Error> {
     let manager = songbird::get(ctx.serenity_context()).await.unwrap().clone();
-//    let mut lock = ctx.serenity_context().data.write().await;
-//    let client_map = lock.get_mut::<ClientStateMap>().unwrap();
-
     let client_map = &mut ctx.data().client_state_map.write().await;
 
     let client_state = match client_map.get(guild_id.as_u64()) {
@@ -400,11 +147,6 @@ async fn handle_play(
                 manager: manager.clone()
             }
         );
-//        handlers::QueueHandler {
-//            context: ctx,
-//            guild_id: guild_id.clone(),
-//            handler: handler_lock.clone(),
-//        },
 
         (
             play_status,
