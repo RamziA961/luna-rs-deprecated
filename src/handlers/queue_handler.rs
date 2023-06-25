@@ -10,14 +10,12 @@ use std::sync::Arc;
 
 use log::warn;
 
-use crate::{
-    client_state::{ClientState, ClientStateMap}
-};
+use crate::client_state::{ClientState, ClientStateMap};
 
 pub(crate) struct QueueHandler {
     pub(crate) guild_id: GuildId,
     pub(crate) handler: Arc<Mutex<Call>>,
-    pub(crate) client_state_map: Arc<RwLock<ClientStateMap>>
+    pub(crate) client_state_map: Arc<RwLock<ClientStateMap>>,
 }
 
 #[async_trait]

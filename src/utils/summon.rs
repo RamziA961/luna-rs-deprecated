@@ -1,9 +1,8 @@
 use crate::{
     client_state::{ClientState, ClientStateMap},
     config::{Context, Error},
-    commands::utils
+    utils,
 };
-
 
 use log::{debug, error, warn};
 
@@ -14,8 +13,7 @@ pub async fn summon(context: &Context<'_>) -> Result<(), Error> {
     let guild_id = *context.guild_id().unwrap().as_u64();
 
     let r_lock = context.data().client_state_map.read().await;
-    if r_lock.contains_key(&guild_id)
-    {
+    if r_lock.contains_key(&guild_id) {
         return Ok(());
     }
     drop(r_lock);
@@ -29,12 +27,13 @@ pub async fn summon(context: &Context<'_>) -> Result<(), Error> {
     if let Some(manager) = songbird::get(context.serenity_context()).await {
         manager.join(guild_id, channel_id).await.1?;
     } else {
-        context.say(format!(
-            "Sorry {}. I couldn't join your voice channel.\
+        context
+            .say(format!(
+                "Sorry {}. I couldn't join your voice channel.\
             Please ensure that I have the permission needed to join.",
-            context.author().name
-        ))
-        .await?;
+                context.author().name
+            ))
+            .await?;
         return Ok(());
     }
 

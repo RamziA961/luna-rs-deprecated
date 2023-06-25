@@ -6,7 +6,6 @@ pub async fn bot_in_room_check(ctx: Context<'_>) -> Result<bool, Error> {
 
     let client_map = ctx.data().client_state_map.read().await;
 
-
     if client_map.contains_key(&guild_id.as_u64()) {
         Ok(true)
     } else {

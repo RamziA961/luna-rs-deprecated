@@ -1,6 +1,6 @@
 use crate::{
+    checks::shared_room_check,
     config::{Context, Error},
-    checks::shared_room_check
 };
 
 /// Skip the current track.

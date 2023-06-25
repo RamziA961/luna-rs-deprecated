@@ -1,4 +1,3 @@
-use crate::client_state::ClientStateMap;
 use crate::config::{Context, Error};
 
 /// Check if the command's author is in the same voice channel as the bot.
@@ -24,10 +23,13 @@ pub async fn shared_room_check(ctx: Context<'_>) -> Result<bool, Error> {
 
     let client_map = ctx.data().client_state_map.read().await;
 
-
     let client_state = match client_map.get(guild_id.as_u64()) {
         Some(client_state) => client_state,
-        None => return Ok(false),
+        None => {
+            ctx.say("I'm sorry but I can't do that. I am currently not in voice channel.")
+                .await?;
+            return Ok(false);
+        }
     };
 
     if client_state.current_channel.is_some()
@@ -37,7 +39,7 @@ pub async fn shared_room_check(ctx: Context<'_>) -> Result<bool, Error> {
     } else {
         ctx.say(
             "Seems that you're in a different voice channel.\
-            You can only issue commands if you are in the same voice channel.",
+            You can only issue commands if we are in the same voice channel.",
         )
         .await?;
 

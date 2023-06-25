@@ -9,15 +9,13 @@ pub async fn banish(ctx: &Context<'_>) -> Result<(), Error> {
 
         handle.remove(gid).await?;
 
-        client_map
-            .remove(gid.as_u64())
-            .unwrap_or_else(|e| {
-                error!(
-                    "Error encountered: {} for gid: {} from ClientStateMap",
-                    e,
-                    gid.to_string()
-                )
-            });
+        client_map.remove(gid.as_u64()).unwrap_or_else(|e| {
+            error!(
+                "Error encountered: {} for gid: {} from ClientStateMap",
+                e,
+                gid.to_string()
+            )
+        });
     }
     Ok(())
 }

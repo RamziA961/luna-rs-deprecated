@@ -1398,6 +1398,7 @@ dependencies = [
  "hyper-rustls 0.24.0",
  "log 0.4.19",
  "poise",
+ "rand",
  "rocket",
  "serenity",
  "shuttle-poise",

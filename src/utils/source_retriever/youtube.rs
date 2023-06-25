@@ -1,16 +1,17 @@
 use futures::join;
 
 use crate::{
-    config::{Context, ServerState},
     client_state::QueueElement,
-    utils::source_retriever::SourceType
+    config::{Context, ServerState},
+    utils::source_retriever::SourceType,
 };
 
 use url::Url;
 
+use log::warn;
+
 const SINGLE_URI: &str = "https://youtube.com/watch?v=";
 const PLAYLIST_URI: &str = "https://youtube.com/playlist?list=";
-
 
 pub(crate) async fn fetch_playlist(
     playlist_id: String,
@@ -126,7 +127,10 @@ pub(crate) async fn fetch_playlist(
     }
 }
 
-pub(crate) async fn fetch_video(video_id: String, server_state: &ServerState) -> Option<QueueElement> {
+pub(crate) async fn fetch_video(
+    video_id: String,
+    server_state: &ServerState,
+) -> Option<QueueElement> {
     let (_, response) = server_state
         .youtube_client
         .videos()
@@ -136,7 +140,7 @@ pub(crate) async fn fetch_video(video_id: String, server_state: &ServerState) ->
         .doit()
         .await
         .unwrap();
-    
+
     if let Some(video_data) = response.items.unwrap().first() {
         Some(QueueElement {
             title: video_data
@@ -167,7 +171,10 @@ pub(crate) async fn fetch_video(video_id: String, server_state: &ServerState) ->
     }
 }
 
-pub(crate) async fn handle_search_query(query: String, server_state: &ServerState) -> Option<SourceType> {
+pub(crate) async fn handle_search_query(
+    query: String,
+    server_state: &ServerState,
+) -> Option<SourceType> {
     let (_, result) = server_state
         .youtube_client
         .search()
@@ -180,6 +187,7 @@ pub(crate) async fn handle_search_query(query: String, server_state: &ServerStat
         .unwrap();
 
     if let Some(best_match) = result.items.clone().unwrap().first().cloned() {
+        warn!("{:?}", best_match);
         Some(SourceType::Single(QueueElement {
             title: best_match
                 .snippet

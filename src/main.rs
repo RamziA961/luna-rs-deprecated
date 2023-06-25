@@ -17,8 +17,9 @@ async fn launch(
     #[shuttle_secrets::Secrets] secret_store: SecretStore,
 ) -> ShuttlePoise<ServerState, Error> {
     let intents = GatewayIntents::non_privileged()
-        | GatewayIntents::MESSAGE_CONTENT
-        | GatewayIntents::GUILD_VOICE_STATES;
+        | GatewayIntents::GUILD_VOICE_STATES
+        | GatewayIntents::GUILD_MEMBERS
+        | GatewayIntents::GUILD_PRESENCES;
 
     let framework = framework::build_client(secret_store, intents)
         .await

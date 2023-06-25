@@ -1,64 +1,65 @@
-use poise::serenity_prelude::model::{
-    guild::Guild,
-    id::ChannelId
-};
-use songbird::{
-    Songbird, 
-    events::{Event, EventContext, EventHandler}
+use poise::serenity_prelude::{
+    model::{guild::Guild, id::ChannelId},
+    Cache,
 };
 use serenity::async_trait;
-
-use std::sync::Arc;
-use tokio::{
-    sync::{RwLock, Mutex}
+use songbird::{
+    events::{Event, EventContext, EventHandler},
+    Songbird,
 };
 
+use std::sync::Arc;
+use tokio::sync::{Mutex, RwLock};
+
 use crate::{
-    client_state::{ClientStateMap, ClientState},
-    config::Context
+    client_state::{ClientState, ClientStateMap},
+    config::Context,
 };
 
 use log::warn;
 
 pub(crate) struct InactivityHandler {
+    pub(crate) cache: Arc<Cache>,
     pub(crate) client_state_map: Arc<RwLock<ClientStateMap>>,
-    pub(crate) manager: Arc<Songbird>,
     pub(crate) guild: Guild,
+    pub(crate) manager: Arc<Songbird>,
 }
 
 #[async_trait]
-impl<'a> EventHandler for InactivityHandler {
+impl EventHandler for InactivityHandler {
     async fn act(&self, _: &EventContext<'_>) -> Option<Event> {
         let guild_id = self.guild.id;
         let mut client_map = self.client_state_map.write().await;
-        
+
         warn!("Inactivity hander acting");
-        
-        if let Some(client_state) = client_map.get(guild_id.as_u64()) {
+
+        if let (Some(client_state), Some(guild)) = (
+            client_map.get(guild_id.as_u64()),
+            self.cache.guild(guild_id),
+        ) {
             if let Some(channel_id) = client_state.current_channel {
-                
-                let member_count = self
-                    .guild
-                    .channels
-                    .get(&mut ChannelId::from(channel_id))
-                    .and_then(|channel| channel.clone().guild()
-                        .as_ref()
-                        .and_then(|guild_channel| guild_channel.member_count)
-                        .clone()
-                    );
-                
-                if member_count == None {
+                let member_count = guild
+                    .voice_states
+                    .values()
+                    .filter(|v_state| {
+                        v_state
+                            .channel_id
+                            .is_some_and(|cid| cid.as_u64() == &channel_id)
+                            && v_state.member.as_ref().is_some_and(|m| !m.user.bot)
+                    })
+                    .count();
+
+                if member_count == 0 {
                     if let Err(e) = self.manager.remove(guild_id).await {
                         warn!("ERR: {:?}", e);
-                    } 
-                    
+                    }
+
                     if let Err(e) = client_map.remove(guild_id.as_u64()) {
                         warn!("ERR: {}", e);
                     }
                 }
-             } 
+            }
         }
         None
     }
 }
-

@@ -1,8 +1,8 @@
 use crate::client_state::client_state_map::ClientStateMap;
 
 use google_youtube3::YouTube;
-use hyper_rustls::HttpsConnector;
 use hyper::client::connect::HttpConnector;
+use hyper_rustls::HttpsConnector;
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -16,5 +16,6 @@ pub type Context<'a> = poise::Context<'a, ServerState, Error>;
 pub struct ServerState {
     pub youtube_client: YouTube<HttpsConnector<HttpConnector>>,
     pub youtube_api_key: String,
-    pub client_state_map: Arc<RwLock<ClientStateMap>>
+    pub client_state_map: Arc<RwLock<ClientStateMap>>,
+    pub discord_id: u64,
 }

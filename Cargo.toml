@@ -17,7 +17,6 @@ features = ["macros", "rt-multi-thread"]
 poise = "0.5.5"
 songbird = { version = "0.3.2", features = ["yt-dlp"] }
 log = "0.4.19"
-env_logger = "0.10.0"
 url = "2.4.0"
 futures = "0.3.28"
 google-youtube3 = "5.0.2"
@@ -30,3 +29,7 @@ shuttle-runtime = { version = "0.18.0" }
 shuttle-secrets = { version = "0.18.0" }
 shuttle-poise = { version = "0.18.0" }
 derive_more = "0.99.17"
+rand = "0.8.5"
+
+[dev-dependencies]
+env_logger = "0.10.0"

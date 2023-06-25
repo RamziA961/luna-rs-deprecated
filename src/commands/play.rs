@@ -10,20 +10,18 @@ use url;
 use crate::{
     checks::author_in_room_check,
     client_state::{ClientState, QueueElement},
+    config::{Context, Error, ServerState},
+    handlers::{DisconnectHandler, InactivityHandler, QueueHandler, ReconnectHandler},
     utils,
     utils::{source_retriever, source_retriever::SourceType},
-    config::{Context, Error, ServerState},
-    handlers::{InactivityHandler, QueueHandler}
 };
 
-
 #[derive(Debug)]
-pub enum PlayStatus {
+pub(crate) enum PlayStatus {
     Playing(QueueElement),
     Queued(SourceType),
     PlayAndQueued(Vec<QueueElement>),
 }
-
 
 /// Attempts to retrieve a video from YouTube using a given URL or search query.
 /// If successful, the function returns the video's audio and its metadata.
@@ -36,19 +34,21 @@ async fn source_input(context: &Context<'_>, query: String) -> Option<SourceType
         Ok(source) => {
             let domain = source.domain().unwrap().to_lowercase();
             match domain {
-                d if d.contains("youtube.com") => source_retriever::youtube::process(&source, server_state).await,
+                d if d.contains("youtube.com") => {
+                    source_retriever::youtube::process(&source, server_state).await
+                }
                 d if d.contains("soundcloud.com") => todo!(),
-                _ => None
+                _ => None,
             }
         }
         // Search term, handle with youtube.
-        Err(_) => source_retriever::youtube::handle_search_query(query, server_state).await
+        Err(_) => source_retriever::youtube::handle_search_query(query, server_state).await,
     }
 }
 
 /// This function handles playing or enqueuing the requested video.
 /// This includes updating the client state data and creating a
-/// global event listnener to play queued videos.  
+/// global event listnener to play queued videos.
 async fn handle_play(
     guild_id: &GuildId,
     ctx: &Context<'_>,
@@ -129,14 +129,15 @@ async fn handle_play(
             ),
         };
 
+        //todo: better event handling needed.
         handler.remove_all_global_events();
         handler.add_global_event(
             Event::Track(TrackEvent::End),
             QueueHandler {
                 client_state_map: ctx.data().client_state_map.clone(),
                 guild_id: guild_id.clone(),
-                handler: handler_lock.clone()
-            }
+                handler: handler_lock.clone(),
+            },
         );
 
         handler.add_global_event(
@@ -144,8 +145,26 @@ async fn handle_play(
             InactivityHandler {
                 client_state_map: ctx.data().client_state_map.clone(),
                 guild: ctx.guild().unwrap(),
-                manager: manager.clone()
-            }
+                manager: manager.clone(),
+                cache: ctx.serenity_context().cache.clone(),
+            },
+        );
+
+        handler.add_global_event(
+            Event::Core(songbird::CoreEvent::DriverConnect),
+            ReconnectHandler {
+                guild: ctx.guild().unwrap(),
+                client_state_map: ctx.data().client_state_map.clone(),
+            },
+        );
+
+        handler.add_global_event(
+            Event::Core(songbird::CoreEvent::DriverDisconnect),
+            DisconnectHandler {
+                guild: ctx.guild().unwrap(),
+                client_state_map: ctx.data().client_state_map.clone(),
+                manager: manager.clone(),
+            },
         );
 
         (
@@ -168,10 +187,7 @@ async fn handle_play(
 
 /// Summon this bot to play a YouTube video as audio.
 /// Subsequent invocations enqueue requested videos.
-#[poise::command(
-    slash_command,
-    check = "author_in_room_check"
-)]
+#[poise::command(slash_command, check = "author_in_room_check")]
 pub async fn play(
     context: Context<'_>,
     #[description = "URL or search query to the requested video."] query: Option<String>,
@@ -215,7 +231,7 @@ pub async fn play(
         if let SourceType::Playlist((p, p_items)) = &input {
             context
                 .say(format!(
-                    "{} - {} with {} videos found.",
+                    "{} - {} containing {} videos found.",
                     p.title,
                     p.channel_name,
                     p_items.len()
@@ -228,18 +244,18 @@ pub async fn play(
                 context
                     .say(match play_status {
                         PlayStatus::Playing(v) => {
-                            format!("Playing: {} by {}.\n{}", v.title, v.channel_name, v.url)
+                            format!("Playing: {} by {}.\n<{}>", v.title, v.channel_name, v.url)
                         }
                         PlayStatus::Queued(st) => match st {
                             SourceType::Single(v) => {
-                                format!("Queued: {} by {}.\n{}", v.title, v.channel_name, v.url)
+                                format!("Queued: {} by {}.\n<{}>", v.title, v.channel_name, v.url)
                             }
                             SourceType::Playlist((_, p)) => format!("Queued {} videos.", p.len()),
                         },
                         PlayStatus::PlayAndQueued(p) => {
                             let v = p.first().clone().unwrap();
                             format!(
-                                "Queued {} videos.\nPlaying: {} by {}.\n{}",
+                                "Queued {} videos.\nPlaying: {} by {}.\n<{}>",
                                 p.len(),
                                 v.title,
                                 v.channel_name,

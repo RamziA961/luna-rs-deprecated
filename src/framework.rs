@@ -58,14 +58,16 @@ pub(crate) async fn build_client(
                         .await
                     }
                     None => {
-                        poise::builtins::register_globally(context, &framework.options().commands).await
+                        poise::builtins::register_globally(context, &framework.options().commands)
+                            .await
                     }
                 }?;
 
                 Ok(ServerState {
                     youtube_client: yt,
                     youtube_api_key: secrets.get("YOUTUBE_API_KEY").unwrap(),
-                    client_state_map: Arc::new(RwLock::new(ClientStateMap::new()))
+                    client_state_map: Arc::new(RwLock::new(ClientStateMap::new())),
+                    discord_id: context.cache.current_user_id().as_u64().clone(),
                 })
             })
         })
