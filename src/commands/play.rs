@@ -10,7 +10,7 @@ use url;
 use crate::{
     checks::author_in_room_check,
     client_state::{ClientState, QueueElement},
-    config::{Context, Error, ServerState},
+    config::{Context, Error},
     handlers::{DisconnectHandler, InactivityHandler, QueueHandler, ReconnectHandler},
     utils,
     utils::{source_retriever, source_retriever::SourceType},
@@ -34,10 +34,10 @@ async fn source_input(context: &Context<'_>, query: String) -> Option<SourceType
         Ok(source) => {
             let domain = source.domain().unwrap().to_lowercase();
             match domain {
-                d if d.contains("youtube.com") => {
+                _ if domain.contains("youtube.com") => {
                     source_retriever::youtube::process(&source, server_state).await
                 }
-                d if d.contains("soundcloud.com") => todo!(),
+                _ if domain.contains("soundcloud.com") => todo!(),
                 _ => None,
             }
         }
@@ -129,43 +129,52 @@ async fn handle_play(
             ),
         };
 
-        //todo: better event handling needed.
-        handler.remove_all_global_events();
-        handler.add_global_event(
+        t_handle.add_event(
             Event::Track(TrackEvent::End),
             QueueHandler {
                 client_state_map: ctx.data().client_state_map.clone(),
                 guild_id: guild_id.clone(),
                 handler: handler_lock.clone(),
             },
-        );
+        )?;
 
-        handler.add_global_event(
-            Event::Core(songbird::CoreEvent::ClientDisconnect),
-            InactivityHandler {
-                client_state_map: ctx.data().client_state_map.clone(),
-                guild: ctx.guild().unwrap(),
-                manager: manager.clone(),
-                cache: ctx.serenity_context().cache.clone(),
-            },
-        );
+        //todo: better event handling needed.
+        // handler.remove_all_global_events();
+        // handler.add_global_event(
+        //     Event::Track(TrackEvent::End),
+        //     QueueHandler {
+        //         client_state_map: ctx.data().client_state_map.clone(),
+        //         guild_id: guild_id.clone(),
+        //         handler: handler_lock.clone(),
+        //     },
+        // );
 
-        handler.add_global_event(
-            Event::Core(songbird::CoreEvent::DriverConnect),
-            ReconnectHandler {
-                guild: ctx.guild().unwrap(),
-                client_state_map: ctx.data().client_state_map.clone(),
-            },
-        );
+        // handler.add_global_event(
+        //     Event::Core(songbird::CoreEvent::ClientDisconnect),
+        //     InactivityHandler {
+        //         client_state_map: ctx.data().client_state_map.clone(),
+        //         guild: ctx.guild().unwrap(),
+        //         manager: manager.clone(),
+        //         cache: ctx.serenity_context().cache.clone(),
+        //     },
+        // );
 
-        handler.add_global_event(
-            Event::Core(songbird::CoreEvent::DriverDisconnect),
-            DisconnectHandler {
-                guild: ctx.guild().unwrap(),
-                client_state_map: ctx.data().client_state_map.clone(),
-                manager: manager.clone(),
-            },
-        );
+        // handler.add_global_event(
+        //     Event::Core(songbird::CoreEvent::DriverConnect),
+        //     ReconnectHandler {
+        //         guild: ctx.guild().unwrap(),
+        //         client_state_map: ctx.data().client_state_map.clone(),
+        //     },
+        // );
+
+        // handler.add_global_event(
+        //     Event::Core(songbird::CoreEvent::DriverDisconnect),
+        //     DisconnectHandler {
+        //         guild: ctx.guild().unwrap(),
+        //         client_state_map: ctx.data().client_state_map.clone(),
+        //         manager: manager.clone(),
+        //     },
+        // );
 
         (
             play_status,

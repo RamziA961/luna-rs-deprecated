@@ -6,11 +6,11 @@ use crate::{
 
 use rand::seq::SliceRandom;
 
-/// Queue commands to interact with the queue.
+/// Commands to interact with and manipulate the queue.
 #[poise::command(
     slash_command,
     check = "shared_room_check",
-    subcommands("show", "clear", "shuffle")
+    subcommands("show", "clear", "shuffle", "reverse")
 )]
 pub async fn queue(_: Context<'_>) -> Result<(), Error> {
     Ok(())
@@ -93,7 +93,7 @@ pub async fn clear(
 }
 
 /// Shuffle the items in the queue.
-#[poise::command(slash_command)]
+#[poise::command(slash_command, check = "shared_room_check")]
 pub async fn shuffle(context: Context<'_>) -> Result<(), Error> {
     let guild_id = context.guild_id().unwrap();
     let mut client_map = context.data().client_state_map.write().await;
@@ -118,6 +118,39 @@ pub async fn shuffle(context: Context<'_>) -> Result<(), Error> {
                 .unwrap();
 
             context.say("Queue has been shuffled.").await?;
+        } else {
+            context.say("The queue is empty.").await?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Reverse the order of queue elements.
+#[poise::command(slash_command, check = "shared_room_check")]
+pub async fn reverse(context: Context<'_>) -> Result<(), Error> {
+    let guild_id = context.guild_id().unwrap();
+    let mut client_map = context.data().client_state_map.write().await;
+
+    if let Some(client_state) = client_map.get(guild_id.as_u64()).cloned() {
+        if let Some(queue) = client_state.song_queue {
+            let updated_queue = queue
+                .iter()
+                .rev()
+                .map(|elem| elem.to_owned())
+                .collect::<Vec<QueueElement>>();
+
+            client_map
+                .update(
+                    guild_id.as_u64(),
+                    &mut ClientState {
+                        song_queue: Some(updated_queue),
+                        ..client_state
+                    },
+                )
+                .unwrap();
+
+            context.say("Queue has been reversed.").await?;
         } else {
             context.say("The queue is empty.").await?;
         }
