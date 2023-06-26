@@ -34,11 +34,10 @@ pub(crate) async fn build_client(
         .options(poise::FrameworkOptions {
             commands: vec![
                 commands::play::play(),
-                commands::playing::playing(),
                 commands::leave::leave(),
                 commands::queue::queue(),
-                commands::skip::skip(),
                 commands::stop::stop(),
+                commands::track::track(),
             ],
             ..Default::default()
         })

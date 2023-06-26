@@ -1,8 +1,10 @@
-use log::{error, warn};
+use log::warn;
 
-use crate::checks::shared_room_check;
-use crate::client_state::{ClientState, ClientStateMap};
-use crate::config::{Context, Error};
+use crate::{
+    checks::shared_room_check,
+    client_state::ClientState,
+    config::{Context, Error},
+};
 
 /// Stop the current track and empty the queue.
 #[poise::command(slash_command, check = "shared_room_check")]
