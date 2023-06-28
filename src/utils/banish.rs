@@ -1,5 +1,5 @@
 use crate::config::{Context, Error};
-use log::{debug, error, warn};
+use log::error;
 
 pub async fn banish(ctx: &Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id();

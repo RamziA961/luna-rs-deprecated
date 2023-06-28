@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 
 use log::warn;
 
-use crate::client_state::{ClientState, ClientStateMap};
+use crate::client_state::ClientStateMap;
 
 pub(crate) struct DisconnectHandler {
     pub(crate) client_state_map: Arc<RwLock<ClientStateMap>>,
@@ -26,7 +26,7 @@ impl EventHandler for DisconnectHandler {
         let mut client_map = self.client_state_map.write().await;
 
         if client_map.get(self.guild.id.as_u64()).is_some() {
-            self.manager.remove(self.guild.id).await;
+            self.manager.remove(self.guild.id).await.unwrap();
             client_map.remove(self.guild.id.as_u64()).unwrap();
         }
 

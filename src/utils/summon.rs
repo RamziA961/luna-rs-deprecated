@@ -1,10 +1,9 @@
-use songbird::{Event, TrackEvent};
+use songbird::Event;
 
 use crate::{
-    client_state::{ClientState, ClientStateMap},
+    client_state::ClientState,
     config::{Context, Error},
     handlers::{DisconnectHandler, InactivityHandler, ReconnectHandler},
-    utils,
 };
 
 /// This function uses songbird to connect the bot to the command author's voice channel.

@@ -1,9 +1,6 @@
 use poise::serenity_prelude::model::guild::Guild;
 use serenity::async_trait;
-use songbird::{
-    events::{Event, EventContext, EventHandler},
-    Songbird,
-};
+use songbird::events::{Event, EventContext, EventHandler};
 
 use std::sync::Arc;
 use tokio::sync::RwLock;

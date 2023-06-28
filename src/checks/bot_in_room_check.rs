@@ -1,4 +1,3 @@
-use crate::client_state::ClientStateMap;
 use crate::config::{Context, Error};
 
 pub async fn bot_in_room_check(ctx: Context<'_>) -> Result<bool, Error> {

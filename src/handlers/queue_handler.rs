@@ -8,8 +8,6 @@ use serenity::{
 use poise::serenity_prelude::GuildId;
 use std::sync::Arc;
 
-use log::warn;
-
 use crate::client_state::{ClientState, ClientStateMap};
 
 pub(crate) struct QueueHandler {
@@ -19,7 +17,7 @@ pub(crate) struct QueueHandler {
 }
 
 #[async_trait]
-impl<'a> EventHandler for QueueHandler {
+impl EventHandler for QueueHandler {
     async fn act(&self, _: &EventContext<'_>) -> Option<Event> {
         let mut client_map = self.client_state_map.write().await;
         let client_state = client_map.get(self.guild_id.as_u64()).cloned().unwrap();

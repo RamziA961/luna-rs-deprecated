@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use crate::client_state::client_state::ClientState;
-use crate::client_state::client_state_error::ClientStateError;
+use crate::client_state::{ClientState, ClientStateError};
 
 #[derive(Clone)]
 pub struct ClientStateMap {

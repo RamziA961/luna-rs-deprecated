@@ -1,4 +1,4 @@
-use crate::client_state::client_state_map::ClientStateMap;
+use crate::client_state::{client_state_map::ClientStateMap, ClientStateError};
 
 use google_youtube3::YouTube;
 use hyper::client::connect::HttpConnector;
@@ -18,4 +18,10 @@ pub struct ServerState {
     pub youtube_api_key: String,
     pub client_state_map: Arc<RwLock<ClientStateMap>>,
     pub discord_id: u64,
+}
+
+impl From<ClientStateError> for Error {
+    fn from(val: ClientStateError) -> Self {
+        Error::from(val.to_string())
+    }
 }

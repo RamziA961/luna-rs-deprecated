@@ -1,10 +1,6 @@
 use futures::join;
 
-use crate::{
-    client_state::QueueElement,
-    config::{Context, ServerState},
-    utils::source_retriever::SourceType,
-};
+use crate::{client_state::QueueElement, config::ServerState, utils::source_retriever::SourceType};
 
 use url::Url;
 

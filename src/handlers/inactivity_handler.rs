@@ -1,7 +1,4 @@
-use poise::serenity_prelude::{
-    model::{guild::Guild, id::ChannelId},
-    Cache,
-};
+use poise::serenity_prelude::{model::guild::Guild, Cache};
 use serenity::async_trait;
 use songbird::{
     events::{Event, EventContext, EventHandler},
@@ -9,12 +6,9 @@ use songbird::{
 };
 
 use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 
-use crate::{
-    client_state::{ClientState, ClientStateMap},
-    config::Context,
-};
+use crate::client_state::ClientStateMap;
 
 use log::warn;
 
