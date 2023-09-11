@@ -184,44 +184,67 @@ pub(crate) async fn handle_search_query(
 
     if let Some(best_match) = result.items.clone().unwrap().first().cloned() {
         warn!("{:?}", best_match);
-        Some(SourceType::Single(QueueElement {
-            title: best_match
-                .snippet
-                .as_ref()
-                .unwrap()
-                .title
-                .as_ref()
-                .unwrap()
-                .clone(),
-            channel_name: best_match
-                .snippet
-                .as_ref()
-                .unwrap()
-                .channel_title
-                .as_ref()
-                .unwrap()
-                .clone(),
-            url: format!(
-                "{}{}",
-                SINGLE_URI,
-                best_match
+
+        if best_match
+            .id
+            .as_ref()
+            .and_then(|id| id.video_id.clone())
+            .is_some()
+        {
+            Some(SourceType::Single(QueueElement {
+                title: best_match
+                    .snippet
+                    .as_ref()
+                    .unwrap()
+                    .title
+                    .as_ref()
+                    .unwrap()
+                    .clone(),
+                channel_name: best_match
+                    .snippet
+                    .as_ref()
+                    .unwrap()
+                    .channel_title
+                    .as_ref()
+                    .unwrap()
+                    .clone(),
+                url: format!(
+                    "{}{}",
+                    SINGLE_URI,
+                    best_match
+                        .id
+                        .as_ref()
+                        .unwrap()
+                        .video_id
+                        .as_ref()
+                        .unwrap()
+                        .clone()
+                ),
+                id: best_match
                     .id
                     .as_ref()
                     .unwrap()
                     .video_id
                     .as_ref()
                     .unwrap()
-                    .clone()
-            ),
-            id: best_match
+                    .clone(),
+            }))
+        } else {
+            let p_id = best_match
                 .id
                 .as_ref()
                 .unwrap()
-                .video_id
+                .playlist_id
                 .as_ref()
                 .unwrap()
-                .clone(),
-        }))
+                .clone();
+
+            if let Some(playlist) = fetch_playlist(p_id, server_state).await {
+                Some(SourceType::Playlist(playlist))
+            } else {
+                None
+            }
+        }
     } else {
         None
     }
