@@ -29,13 +29,12 @@ A Discord music bot built with Rust and serenity-rs with support for YouTube vid
 - Spotify support.
 
 
-## Self-Hosting
+## Getting Started:
 
-### Configration:
+### Hosting:
 1. Install Rust and `cargo`, if you don't have them setup already. Instructions are available [here](https://www.rust-lang.org/tools/install).
-2. Install the [shuttle.rs](https://www.shuttle.rs/) CLI to host the bot remotely for free.
-3. Install [yt-dlp](https://github.com/yt-dlp/yt-dlp) for video to audio conversion (depends on ffmpeg).
-4. Create a `Secrets.toml` file in the project's root folder and populate it with the following key value pairs.
+2. Install [yt-dlp](https://github.com/yt-dlp/yt-dlp) for video to audio conversion (depends on ffmpeg).
+3. Create a `Secrets.toml` file in the project's root folder and populate it with the following key value pairs.
 
 ```toml
 DISCORD_TOKEN = "<insert Discord token>"
@@ -45,10 +44,10 @@ YOUTUBE_API_KEY = "<insert YouTube API key>"
 # This is optional.
 GUILD_ID = "<insert guild id>"
 ```
-5. Create the shuttle project environment `cargo shuttle project start`.
-6. Execute `cargo shuttle run` to host or test your configuration locally.
-7. Deploy to a remote shuttle instance with `cargo shuttle deploy`.
+4. Execute `cargo run` or `cargo run --release`.
 
+### Containerization with Docker:
+Coming Soon...
 
 ### Discord Intents:
 Discord intents must be configured correctly, otherwise the client will be refused access to Discord servers.
@@ -61,7 +60,6 @@ Discord intents must be configured correctly, otherwise the client will be refus
 
 
 ### Helpful Resources:
-- [Installing](https://docs.shuttle.rs/introduction/installation) shuttle and [initializing](https://docs.shuttle.rs/introduction/quick-start) the project environment.
 - [Creating a Discord application and obtaining a client token.](https://discord.com/developers/docs/getting-started)
 - [Obtaining a YouTube API key.](https://developers.google.com/youtube/registering_an_application)
 
@@ -69,9 +67,15 @@ Discord intents must be configured correctly, otherwise the client will be refus
 
 ### Change Log:
 
-<details>
-<summary>[0.1.0]</summary>
-<p>
+
+#### [0.1.1]
+
+```
+Migrated from shuttle.rs and rocket to tokio, due to shuttle.rs limitations.
+Added support for searching for playlists on YouTube.
+```
+
+#### [0.1.0]
 
 ```
 Created base client and client state map with poise.
@@ -84,8 +88,5 @@ Added track and inactivity event handlers.
 YouTube playlist and live stream support completed.
 Laid groundwork for SoundCloud support. (Support impeded by API policy changes)
 ```
-
-</p>
-</details>
 
 ---

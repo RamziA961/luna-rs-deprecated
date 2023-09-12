@@ -23,13 +23,9 @@ google-youtube3 = "5.0.2"
 hyper = "0.14.26"
 hyper-rustls = "0.24.0"
 soundcloud = "0.4.0"
-rocket = "0.5.0-rc.2"
-shuttle-rocket = { version = "0.18.0" }
-shuttle-runtime = { version = "0.18.0" }
-shuttle-secrets = { version = "0.18.0" }
-shuttle-poise = { version = "0.18.0" }
 derive_more = "0.99.17"
 rand = "0.8.5"
+config = "0.13.3"
 
 [dev-dependencies]
 env_logger = "0.10.0"

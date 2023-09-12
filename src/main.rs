@@ -6,26 +6,39 @@ pub(crate) mod framework;
 pub(crate) mod handlers;
 pub(crate) mod utils;
 
-use config::{Error, ServerState};
+use ::config::{Config, File, FileFormat};
+
+use crate::config::Error;
 use poise::serenity_prelude::GatewayIntents;
 
-use shuttle_poise::ShuttlePoise;
-use shuttle_secrets::SecretStore;
-
-#[shuttle_runtime::main]
-async fn launch(
-    #[shuttle_secrets::Secrets] secret_store: SecretStore,
-) -> ShuttlePoise<ServerState, Error> {
+#[tokio::main]
+async fn main() -> Result<(), Error> {
     let intents = GatewayIntents::non_privileged()
         | GatewayIntents::GUILD_VOICE_STATES
         | GatewayIntents::GUILD_MEMBERS
         | GatewayIntents::GUILD_PRESENCES;
 
-    let framework = framework::build_client(secret_store, intents)
+    let secrets = Config::builder()
+        .add_source(
+            if cfg!(debug_assertions) {
+                File::with_name("Secrets.dev.toml")
+            } else {
+                File::with_name("Secrets.toml")
+            }
+            .format(FileFormat::Toml),
+        )
+        .build()
+        .expect("Secrets file could not be initialized.");
+
+    let framework = framework::build_client(secrets, intents)
         .await
         .build()
         .await
         .expect("Client initialization failed.");
 
-    Ok(framework.into())
+    if let Err(e) = framework.start().await {
+        panic!("{:?}", e);
+    }
+
+    Ok(())
 }

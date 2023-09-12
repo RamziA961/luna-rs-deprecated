@@ -6,8 +6,6 @@ use poise::{
     serenity_prelude::GatewayIntents,
 };
 
-use shuttle_secrets::SecretStore;
-
 use crate::{
     client_state::ClientStateMap,
     commands,
@@ -19,7 +17,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 pub(crate) async fn build_client(
-    secrets: SecretStore,
+    secrets: ::config::Config,
     intents: GatewayIntents,
 ) -> FrameworkBuilder<ServerState, Error> {
     let https = hyper_rustls::HttpsConnectorBuilder::new()
@@ -41,12 +39,15 @@ pub(crate) async fn build_client(
             ],
             ..Default::default()
         })
-        .token(secrets.get("DISCORD_TOKEN").unwrap())
+        .token(secrets.get::<String>("DISCORD_TOKEN").unwrap())
         .intents(intents)
         .client_settings(|cb| cb.register_songbird())
         .setup(|context, _, framework| {
             Box::pin(async move {
-                let gid = secrets.get("GUILD_ID").and_then(|v| v.parse::<u64>().ok());
+                let gid = secrets
+                    .get("GUILD_ID")
+                    .ok()
+                    .and_then(|v: String| v.parse::<u64>().ok());
 
                 match gid {
                     Some(gid) => {
