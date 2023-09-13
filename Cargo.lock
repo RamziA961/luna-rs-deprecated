@@ -234,8 +234,10 @@ checksum = "defd4e7873dbddba6c7c91e199c7fcb946abc4a6a4ac3195400bcfb01b5de877"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
+ "js-sys",
  "num-traits 0.2.16",
  "serde",
+ "wasm-bindgen",
  "windows-targets",
 ]
 
@@ -1188,6 +1190,7 @@ dependencies = [
 name = "luna-rs"
 version = "0.1.1"
 dependencies = [
+ "chrono",
  "config",
  "derive_more",
  "env_logger",

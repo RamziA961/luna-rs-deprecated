@@ -7,23 +7,66 @@ pub(crate) mod handlers;
 pub(crate) mod utils;
 
 use ::config::{Config, File, FileFormat};
+use env_logger::fmt::Color;
 
 use crate::config::Error;
 use poise::serenity_prelude::GatewayIntents;
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
+fn build_logger() -> env_logger::Builder {
+    let mut log_builder = env_logger::builder();
+
     if cfg!(debug_assertions) {
-        env_logger::builder()
+        log_builder
             .filter_module("poise", log::LevelFilter::Info)
             .filter_module(module_path!(), log::LevelFilter::Debug)
-            .init();
+            .filter_level(log::LevelFilter::Error)
     } else {
-        env_logger::builder()
+        log_builder
             .filter_module(module_path!(), log::LevelFilter::Warn)
             .filter_level(log::LevelFilter::Error)
-            .init();
-    }
+    };
+
+    log_builder.format(|buf, record| {
+        use chrono::Local;
+        use std::io::Write;
+
+        let timestamp = Local::now().format("[%Y-%m-%d %H:%M:%S]");
+        let level = record.level();
+
+        let level_color = match level {
+            log::Level::Error => Color::Red,
+            log::Level::Warn => Color::Yellow,
+            log::Level::Info => Color::Green,
+            log::Level::Debug => Color::Blue,
+            log::Level::Trace => Color::Magenta,
+        };
+
+        let mut timestamp_sty = buf.style();
+        timestamp_sty
+            .set_bg(Color::Rgb(2, 48, 32))
+            .set_color(Color::White);
+
+        let mut level_sty = buf.style();
+        level_sty
+            .set_color(level_color)
+            .set_intense(true)
+            .set_bold(true);
+
+        write!(
+            buf,
+            "{} |{}|: {}\n-\n",
+            timestamp_sty.value(timestamp),
+            level_sty.value(level),
+            record.args()
+        )
+    });
+
+    log_builder
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    build_logger().init();
 
     let intents = GatewayIntents::non_privileged()
         | GatewayIntents::GUILD_VOICE_STATES
