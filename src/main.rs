@@ -13,6 +13,18 @@ use poise::serenity_prelude::GatewayIntents;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    if cfg!(debug_assertions) {
+        env_logger::builder()
+            .filter_module("poise", log::LevelFilter::Info)
+            .filter_module(module_path!(), log::LevelFilter::Debug)
+            .init();
+    } else {
+        env_logger::builder()
+            .filter_module(module_path!(), log::LevelFilter::Warn)
+            .filter_level(log::LevelFilter::Error)
+            .init();
+    }
+
     let intents = GatewayIntents::non_privileged()
         | GatewayIntents::GUILD_VOICE_STATES
         | GatewayIntents::GUILD_MEMBERS

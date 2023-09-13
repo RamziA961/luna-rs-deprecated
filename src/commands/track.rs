@@ -1,3 +1,5 @@
+use log::error;
+
 use crate::{
     checks::shared_room_check,
     client_state::ClientState,
@@ -21,7 +23,6 @@ pub async fn pause(context: Context<'_>) -> Result<(), Error> {
         match (client_state.is_playing, &client_state.current_track) {
             (true, Some(track)) => {
                 track.pause()?;
-
                 client_map
                     .update(
                         guild_id.as_u64(),
@@ -151,7 +152,8 @@ pub async fn skip(context: Context<'_>) -> Result<(), Error> {
         }
     };
 
-    if t_handle.stop().is_err() {
+    if let Err(err) = t_handle.stop() {
+        error!("An error occured stopping a track. Error: {err:?}");
         context
             .say("Sorry something went wrong. Could not skip the current track.")
             .await?;

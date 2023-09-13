@@ -5,7 +5,7 @@ use songbird::events::{Event, EventContext, EventHandler};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use log::warn;
+use log::info;
 
 use crate::client_state::{ClientState, ClientStateMap};
 
@@ -17,7 +17,7 @@ pub(crate) struct ReconnectHandler {
 #[async_trait]
 impl EventHandler for ReconnectHandler {
     async fn act(&self, ev: &EventContext<'_>) -> Option<Event> {
-        warn!("Reconnect Handler fired.");
+        info!("Reconnect Handler fired.");
         let mut client_state_map = self.client_state_map.write().await;
 
         let ev_data = match ev {

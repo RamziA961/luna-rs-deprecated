@@ -4,7 +4,7 @@ use crate::{client_state::QueueElement, config::ServerState, utils::source_retri
 
 use url::Url;
 
-use log::warn;
+use log::debug;
 
 const SINGLE_URI: &str = "https://youtube.com/watch?v=";
 const PLAYLIST_URI: &str = "https://youtube.com/playlist?list=";
@@ -183,7 +183,7 @@ pub(crate) async fn handle_search_query(
         .unwrap();
 
     if let Some(best_match) = result.items.clone().unwrap().first().cloned() {
-        warn!("{:?}", best_match);
+        debug!("{:?}", best_match);
 
         if best_match
             .id

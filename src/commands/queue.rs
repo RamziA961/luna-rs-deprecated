@@ -18,7 +18,10 @@ pub async fn queue(_: Context<'_>) -> Result<(), Error> {
 
 /// See the next elements in the queue.
 #[poise::command(slash_command, check = "shared_room_check")]
-pub async fn show(context: Context<'_>) -> Result<(), Error> {
+pub async fn show(
+    context: Context<'_>,
+    #[description = "Number of queue items to show."] count: Option<u8>,
+) -> Result<(), Error> {
     let client_map = context.data().client_state_map.read().await;
     let client_state = client_map.get(context.guild_id().unwrap().as_u64());
 
@@ -27,7 +30,12 @@ pub async fn show(context: Context<'_>) -> Result<(), Error> {
             Some(v) if v.len() > 0 => {
                 let out = v
                     .iter()
-                    .take(5)
+                    .take(
+                        count
+                            .unwrap_or(5)
+                            .clamp(1, v.len().try_into().unwrap_or(u8::MAX))
+                            as usize,
+                    )
                     .enumerate()
                     .fold(String::new(), |accum, (i, curr)| {
                         format!(

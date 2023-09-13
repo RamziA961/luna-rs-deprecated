@@ -8,7 +8,7 @@ use songbird::{
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use log::warn;
+use log::debug;
 
 use crate::client_state::ClientStateMap;
 
@@ -21,7 +21,7 @@ pub(crate) struct DisconnectHandler {
 #[async_trait]
 impl EventHandler for DisconnectHandler {
     async fn act(&self, _: &EventContext<'_>) -> Option<Event> {
-        warn!("Disconnect Handler fired.");
+        debug!("Disconnect Handler fired.");
 
         let mut client_map = self.client_state_map.write().await;
 

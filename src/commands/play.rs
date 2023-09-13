@@ -1,5 +1,5 @@
 use futures::join;
-use log::{info, warn};
+use log::{debug, error, info, warn, Level};
 
 use serenity::model::id::GuildId;
 use songbird;
@@ -60,10 +60,14 @@ async fn handle_play(
     let client_state = match client_map.get(guild_id.as_u64()) {
         Some(client_state) => client_state,
         None => {
+            error!(
+                "ClientState for gid: {} does not exist.",
+                guild_id.to_string()
+            );
             return Err(Error::from(format!(
                 "ClientState for gid: {} does not exist.",
                 guild_id.to_string()
-            )))
+            )));
         }
     };
 
@@ -129,14 +133,30 @@ async fn handle_play(
             ),
         };
 
-        t_handle.add_event(
-            Event::Track(TrackEvent::End),
-            QueueHandler {
-                client_state_map: ctx.data().client_state_map.clone(),
-                guild_id: guild_id.clone(),
-                handler: handler_lock.clone(),
-            },
-        )?;
+        if log::log_enabled!(Level::Debug) {
+            let metadata = t_handle.metadata().clone();
+            debug!(
+                "Adding event handler for {} - {}.",
+                metadata.title.map_or_else(|| "None".into(), |title| title),
+                metadata
+                    .channel
+                    .map_or_else(|| "None".into(), |channel| channel),
+            );
+        }
+
+        t_handle
+            .add_event(
+                Event::Track(TrackEvent::End),
+                QueueHandler {
+                    client_state_map: ctx.data().client_state_map.clone(),
+                    guild_id: guild_id.clone(),
+                    handler: handler_lock.clone(),
+                },
+            )
+            .or_else(|err| {
+                error!("Failed to add event listener for track end. Error: {err:?}");
+                Err(err)
+            })?;
 
         (
             play_status,
@@ -151,7 +171,9 @@ async fn handle_play(
 
     client_map
         .update(guild_id.as_u64(), &mut updated_state)
-        .expect("Could not update client state.");
+        .unwrap_or_else(|err| {
+            error!("Could not update the client state for {guild_id}. Error: {err:?}");
+        });
 
     Ok(play_status)
 }
@@ -179,18 +201,17 @@ pub async fn play(
         match context.guild_id() {
             Some(gid) => gid,
             None => {
-                warn!("play::play() could not find a valid guild id in context.");
+                error!("play::play() could not find a valid guild id in context.");
                 context.say("An unexpected error occurred.").await?;
-                return Err(Error::from(""));
+                return Err(Error::from(
+                    "play::play() could not find a valid guild id in context.",
+                ));
             }
         }
     };
 
-    if utils::summon(&context).await.is_err() {
-        warn!(
-            "play::play() could not connect to voice channel in gid: {}.",
-            gid.to_string()
-        );
+    if let Err(err) = utils::summon(&context).await {
+        error!("play::play() could not connect to voice channel for gid: {gid}. Error: {err:?}");
         return Ok(());
     }
 
@@ -238,7 +259,8 @@ pub async fn play(
 
                 Ok(())
             }
-            Err(_) => {
+            Err(err) => {
+                error!("Could not play the requested resource. Error: {err:?}");
                 context
                     .say("Could not play the requested resource. Resetting connection...")
                     .await?;
@@ -247,6 +269,7 @@ pub async fn play(
             }
         }
     } else {
+        warn!("Could not find the requested resource for `{query:?}`");
         context
             .say(format!(
                 "Could not find the requested resource: {}",

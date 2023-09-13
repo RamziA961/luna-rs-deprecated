@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 
 use crate::client_state::ClientStateMap;
 
-use log::warn;
+use log::{debug, error};
 
 pub(crate) struct InactivityHandler {
     pub(crate) cache: Arc<Cache>,
@@ -25,7 +25,7 @@ impl EventHandler for InactivityHandler {
         let guild_id = self.guild.id;
         let mut client_map = self.client_state_map.write().await;
 
-        warn!("Inactivity hander acting");
+        debug!("Inactivity hander acting");
 
         if let (Some(client_state), Some(guild)) = (
             client_map.get(guild_id.as_u64()),
@@ -44,13 +44,13 @@ impl EventHandler for InactivityHandler {
                     .count();
 
                 if member_count == 0 {
-                    if let Err(e) = self.manager.remove(guild_id).await {
-                        warn!("ERR: {:?}", e);
-                    }
+                    self.manager.remove(guild_id).await.unwrap_or_else(|err| {
+                        error!("Could not leave the channel for gid: {guild_id}. Error: {err:?}");
+                    });
 
-                    if let Err(e) = client_map.remove(guild_id.as_u64()) {
-                        warn!("ERR: {}", e);
-                    }
+                    client_map.remove(guild_id.as_u64()).unwrap_or_else(|err| {
+                        error!("Could not update the client state map after gid {guild_id} removed. Error: {err:?}");
+                    });
                 }
             }
         }

@@ -26,6 +26,4 @@ soundcloud = "0.4.0"
 derive_more = "0.99.17"
 rand = "0.8.5"
 config = "0.13.3"
-
-[dev-dependencies]
 env_logger = "0.10.0"
