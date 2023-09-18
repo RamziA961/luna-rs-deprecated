@@ -5,12 +5,14 @@ use songbird::{
     Songbird,
 };
 
+use log::{debug, error};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::client_state::ClientStateMap;
-
-use log::{debug, error};
+use crate::{
+    client_state::ClientStateMap,
+    logging::{AsyncLog, Log},
+};
 
 pub(crate) struct InactivityHandler {
     pub(crate) cache: Arc<Cache>,
@@ -19,13 +21,37 @@ pub(crate) struct InactivityHandler {
     pub(crate) manager: Arc<Songbird>,
 }
 
+impl Log for InactivityHandler {
+    fn log(&self) {
+        use log::info;
+        info!("InactivityHandler({}) event fired.", self.guild.id);
+    }
+}
+
+#[cfg(debug_assertions)]
+#[async_trait]
+impl AsyncLog for InactivityHandler {
+    async fn async_log(&self) {
+        debug!(
+            "InactivityHandler({})::{{ {} }}",
+            self.guild.id,
+            self.client_state_map.read().await
+        );
+    }
+}
+
 #[async_trait]
 impl EventHandler for InactivityHandler {
     async fn act(&self, _: &EventContext<'_>) -> Option<Event> {
         let guild_id = self.guild.id;
         let mut client_map = self.client_state_map.write().await;
 
-        debug!("Inactivity hander acting");
+        self.log();
+
+        #[cfg(debug_assertions)]
+        tokio::pin! {
+            let log_fut = self.async_log();
+        }
 
         if let (Some(client_state), Some(guild)) = (
             client_map.get(guild_id.as_u64()),
@@ -54,6 +80,11 @@ impl EventHandler for InactivityHandler {
                 }
             }
         }
+        std::mem::drop(client_map);
+
+        #[cfg(debug_assertions)]
+        log_fut.await;
+
         None
     }
 }

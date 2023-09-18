@@ -61,7 +61,7 @@ impl EventHandler for QueueHandler {
             .update(self.guild_id.as_u64(), &mut updated_state)
             .unwrap();
 
-        t_handle
+        let _ = t_handle
             .add_event(
                 Event::Track(TrackEvent::End),
                 Self {
@@ -71,7 +71,7 @@ impl EventHandler for QueueHandler {
                 },
             )
             .or_else(|err| {
-                error!("Failed to add event listener for track end. Error: {err:?}");
+                error!("Failed to add event listener for track end. Error: {err:?}\n{client_map:?}\n{client_state:?}");
                 Err(err)
             });
 

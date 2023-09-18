@@ -17,7 +17,7 @@ pub(crate) struct ReconnectHandler {
 #[async_trait]
 impl EventHandler for ReconnectHandler {
     async fn act(&self, ev: &EventContext<'_>) -> Option<Event> {
-        info!("Reconnect Handler fired.");
+        info!("ReconnectHandler({}) event fired.", self.guild.id);
         let mut client_state_map = self.client_state_map.write().await;
 
         let ev_data = match ev {

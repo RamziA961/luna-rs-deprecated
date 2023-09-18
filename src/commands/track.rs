@@ -1,4 +1,4 @@
-use log::error;
+use log::{error, info};
 
 use crate::{
     checks::shared_room_check,
@@ -36,15 +36,18 @@ pub async fn pause(context: Context<'_>) -> Result<(), Error> {
                 context.say("Track paused.").await?;
             }
             (false, Some(_)) => {
+                info!("Pause failed: Pause called on paused track.\n{client_state:?}");
                 context.say("The track is already paused.").await?;
             }
             (_, None) => {
+                info!("Pause failed: Pause called without a queried track.\n{client_state:?}");
                 context
                     .say("No tracks in the buffer. A track must be queried first")
                     .await?;
             }
         };
     } else {
+        error!("Pause failed: Client state could not be retrived.");
         context.say("Sorry. Something has gone wrong.").await?;
     }
 
@@ -61,6 +64,7 @@ pub async fn resume(context: Context<'_>) -> Result<(), Error> {
     if let Some(client_state) = client_map.get(guild_id.as_u64()).cloned() {
         match (client_state.is_playing, &client_state.current_track) {
             (true, Some(_)) => {
+                info!("Resume failed: Resume called on an active track.\n{client_state:?}");
                 context.say("The track is not paused.").await?;
             }
             (false, Some(track)) => {
@@ -79,12 +83,14 @@ pub async fn resume(context: Context<'_>) -> Result<(), Error> {
                 context.say("Track resumed.").await?;
             }
             (_, None) => {
+                info!("Resume failed: Resume called without a queried track.\n{client_state:?}");
                 context
                     .say("No tracks in the buffer. A track must be queried first")
                     .await?;
             }
         };
     } else {
+        error!("Resume failed: Client state could not be retrived.");
         context.say("Sorry. Something has gone wrong.").await?;
     }
 
@@ -131,6 +137,7 @@ pub async fn info(context: Context<'_>) -> Result<(), Error> {
 
         Ok(())
     } else {
+        error!("Resume failed: Client state could not be retrived.");
         context.say("Sorry. Something went wrong.").await?;
         Ok(())
     }
@@ -153,7 +160,7 @@ pub async fn skip(context: Context<'_>) -> Result<(), Error> {
     };
 
     if let Err(err) = t_handle.stop() {
-        error!("An error occured stopping a track. Error: {err:?}");
+        error!("Skip failed: An error occured stopping a track. Error: {err:?}");
         context
             .say("Sorry something went wrong. Could not skip the current track.")
             .await?;

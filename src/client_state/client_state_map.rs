@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use crate::client_state::{ClientState, ClientStateError};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ClientStateMap {
     map: HashMap<u64, ClientState>,
 }
@@ -57,5 +57,17 @@ impl ClientStateMap {
             }
             false => Err(ClientStateError::NonExistentClientID),
         }
+    }
+}
+
+impl Display for ClientStateMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "ClientStateMap(size: {}, capacity: {}, est_alloc: {} B)",
+            self.map.len(),
+            self.map.capacity(),
+            (self.map.capacity() * std::mem::size_of::<ClientState>())
+        )
     }
 }
