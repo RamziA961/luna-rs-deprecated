@@ -73,6 +73,10 @@ Discord intents must be configured correctly, otherwise the client will be refus
 ```
 Migrated from shuttle.rs and rocket to tokio, due to shuttle.rs limitations.
 Added support for searching for playlists on YouTube.
+Add optional parameter for queue show to control number of queue elements shown.
+Fixed bug where queued items would not play after a song finishes or is skipped.
+Added Dockerfile to streamline configuration for deployment.
+
 ```
 
 #### [0.1.0]
