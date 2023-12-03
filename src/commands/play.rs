@@ -2,8 +2,7 @@ use futures::join;
 use log::{debug, error, info, warn, Level};
 
 use serenity::model::id::GuildId;
-use songbird;
-use songbird::{Event, TrackEvent};
+use songbird::{self, Event, TrackEvent};
 
 use url;
 
@@ -124,14 +123,25 @@ async fn handle_play(
 
         let t_handle = match &input {
             SourceType::Single(v) => {
-                handler.play_source(songbird::ytdl(v.url.clone()).await.unwrap())
+                debug!("Initializing track.");
+                let t = songbird::input::Restartable::ytdl(v.url.clone(), true).await?;
+                debug!("Track initialization complete.");
+                //handler.play_source(songbird::ytdl(v.url.clone()).await.unwrap())
+                handler.play_source(t.into())
             }
-            SourceType::Playlist((_, p)) => handler.play_source(
-                songbird::ytdl(p.first().unwrap().url.clone())
-                    .await
-                    .unwrap(),
-            ),
+            SourceType::Playlist((_, p)) => {
+                debug!("Initializing track.");
+                let t = songbird::input::Restartable::ytdl(p.first().unwrap().url.clone(), true)
+                    .await?;
+                debug!("Track initialization complete.");
+                //let t = songbird::input::cached::Memory::new(songbird::ytdl(p.first().unwrap().url.clone()).await?).unwrap();
+                // songbird::ytdl(p.first().unwrap().url.clone())
+                //     .await
+                //     .unwrap(),
+                handler.play_source(t.into())
+            }
         };
+        debug!("Play called");
 
         if log::log_enabled!(Level::Debug) {
             let metadata = t_handle.metadata().clone();
@@ -224,8 +234,8 @@ pub async fn play(
             context
                 .say(format!(
                     "{} - {} containing {} videos found.",
-                    p.title,
-                    p.channel_name,
+                    utils::decode_html_encoded_string(&p.title),
+                    utils::decode_html_encoded_string(&p.channel_name),
                     p_items.len()
                 ))
                 .await?;
@@ -236,11 +246,21 @@ pub async fn play(
                 context
                     .say(match play_status {
                         PlayStatus::Playing(v) => {
-                            format!("Playing: {} by {}.\n<{}>", v.title, v.channel_name, v.url)
+                            format!(
+                                "Playing: {} by {}.\n<{}>",
+                                utils::decode_html_encoded_string(&v.title),
+                                utils::decode_html_encoded_string(&v.channel_name),
+                                v.url
+                            )
                         }
                         PlayStatus::Queued(st) => match st {
                             SourceType::Single(v) => {
-                                format!("Queued: {} by {}.\n<{}>", v.title, v.channel_name, v.url)
+                                format!(
+                                    "Queued: {} by {}.\n<{}>",
+                                    utils::decode_html_encoded_string(&v.title),
+                                    utils::decode_html_encoded_string(&v.channel_name),
+                                    v.url
+                                )
                             }
                             SourceType::Playlist((_, p)) => format!("Queued {} videos.", p.len()),
                         },
@@ -249,8 +269,8 @@ pub async fn play(
                             format!(
                                 "Queued {} videos.\nPlaying: {} by {}.\n<{}>",
                                 p.len(),
-                                v.title,
-                                v.channel_name,
+                                utils::decode_html_encoded_string(&v.title),
+                                utils::decode_html_encoded_string(&v.channel_name),
                                 v.url
                             )
                         }

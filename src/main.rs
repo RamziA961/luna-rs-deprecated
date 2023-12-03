@@ -52,11 +52,29 @@ fn build_logger() -> env_logger::Builder {
             .set_intense(true)
             .set_bold(true);
 
+        let f = record
+            .file()
+            .map(|file_name| {
+                file_name
+                    .rsplit('/')
+                    .take(3)
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .rev()
+                    .map(|s| format!("/{s}"))
+                    .collect::<String>()
+            })
+            .unwrap_or("Unknown file".to_string());
+
         write!(
             buf,
-            "{} |{}|: {}\n-\n",
+            "{} |{}| @ {} {}: {}\n-\n",
             timestamp_sty.value(timestamp),
             level_sty.value(level),
+            record
+                .line()
+                .map_or_else(|| "-1".to_string(), |ln| ln.to_string()),
+            f,
             record.args()
         )
     });

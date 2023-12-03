@@ -44,11 +44,12 @@ impl EventHandler for QueueHandler {
 
         let next = song_queue.first().unwrap();
 
-        let t_handle = self
-            .handler
-            .lock()
-            .await
-            .play_source(songbird::ytdl(next.url.clone()).await.unwrap());
+        let t_handle = self.handler.lock().await.play_source(
+            songbird::input::Restartable::ytdl(next.url.clone(), true)
+                .await
+                .unwrap()
+                .into(),
+        );
 
         let mut updated_state = ClientState {
             is_playing: true,
@@ -61,7 +62,7 @@ impl EventHandler for QueueHandler {
             .update(self.guild_id.as_u64(), &mut updated_state)
             .unwrap();
 
-        t_handle
+        let _ = t_handle
             .add_event(
                 Event::Track(TrackEvent::End),
                 Self {
@@ -70,9 +71,9 @@ impl EventHandler for QueueHandler {
                     handler: self.handler.clone(),
                 },
             )
-            .or_else(|err| {
+            .map_err(|err| {
                 error!("Failed to add event listener for track end. Error: {err:?}");
-                Err(err)
+                err
             });
 
         None
